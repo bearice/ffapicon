@@ -1,0 +1,1 @@
+before use, please rename config.js.template to config.js and change API_KEY, API_SECRET, and CALLBACK_URL.
