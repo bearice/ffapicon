@@ -1,0 +1,19 @@
+var oauth = {
+    requestTokenURI   : 'http://fanfou.com/oauth/request_token',
+    accessTokenURI    : 'http://fanfou.com/oauth/access_token',
+    authorizeTokenURI : 'http://fanfou.com/oauth/authorize',
+    signatureMethod   : 'HMAC-SHA1',
+    consumerKey       : 'YOUR_API_KEY',
+    consumerSecret    : 'YOUR_API_SECRET',
+    callbackURI       : 'http://YOUR_HOST:YOUR_PORT',
+};
+
+var httpd = {
+    port : 8080,
+    host : '0.0.0.0',
+};
+
+module.exports = {
+    oauth : oauth,
+    httpd : httpd,
+}

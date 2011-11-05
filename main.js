@@ -1,17 +1,6 @@
 #!/usr/local/bin/node
 var OAuth = require('./oauth').OAuth;
 
-var config = {
-    requestTokenURI: 'http://rzlff.com/oauth/request_token',
-    accessTokenURI:  'http://rzlff.com/oauth/access_token',
-    authorizeTokenURI: 'http://rzlff.com/oauth/authorize',
-    signatureMethod: 'HMAC-SHA1',
-    consumerKey: 'b9bd34db30a05ad72cde0c1eb4154e25',
-    consumerSecret: '216ba86cb32abac68b5b5dce80b5add0',
-    callbackURI: 'http://192.168.100.33:1337/verify'
-};
-
-
 var fs = require('fs');
 var qs = require('querystring');
 var url = require('url');
@@ -20,6 +9,7 @@ var path = require('path');
 var crypto = require('crypto');
 var Cookies = require('./cookies');
 var mime = require('./mime');
+var config = require('./config');
 
 var sessions = {};
 var session_seq = Math.floor(Math.random()*1000000);
@@ -68,7 +58,7 @@ function setSession(cookies,val){
 }
 
 function login(req,resp){
-	var oa = new OAuth(config);
+	var oa = new OAuth(config.oauth);
     setSession(req.cookies,oa);
     oa.acquireRequestToken(null, function(oa){
     	if(!oa.statusCode){
@@ -106,11 +96,11 @@ function home(req,resp){
     var oa = getSession(req.cookies);
     if(oa){
         var method = "GET";
-        var uri = "http://api.rzlff.com/account/verify_credentials.json";
+        var uri = "http://api.fanfou.com/account/verify_credentials.json";
         var param = {};
         var header = oa.generateAuthorizationString(method,uri,param);
         var options = {
-            host: 'api.rzlff.com',
+            host: 'api.fanfou.com',
             port: 80,
             path: '/account/verify_credentials.json',
             method: 'GET',
@@ -177,8 +167,8 @@ http.createServer(function (request, response) {
     }else{
         static(request,response);
     }
-}).listen(1337);
+}).listen(config.httpd.port,config.httpd.host);
 
 
-console.log('Server running at port 1337');
+console.log('Server running at %s:%d',config.httpd.host,config.httpd.port);
 

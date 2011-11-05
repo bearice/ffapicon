@@ -28,14 +28,16 @@ OAuth.prototype.acquireRequestToken = function(body, callback, ctx) {
     console.log('baseString: '+ signatureBaseString);
     oauthHeader['oauth_signature'] = OAuth.sign(this, signatureBaseString);
     
+    var body = querystring.stringify(body);
     var headers = {
         'Host': urlInfo.hostname,
         'Content-Type': 'application/x-www-form-urlencoded',
-        'Authorization': OAuth.toAuthorizationHeaderString(oauthHeader)
+        'Content-Length': body.length,
+        'Authorization': OAuth.toAuthorizationHeaderString(oauthHeader),
     };
     //console.log(JSON.stringify(headers));
     var request = client.request('POST', urlInfo.pathname, headers);
-    request.write(querystring.stringify(body));
+    request.write(body);
     request.end();
     
     var oauth = this;
@@ -86,6 +88,7 @@ OAuth.prototype.acquireAccessToken = function(callback, ctx){
     var headers = {
         'Host': urlInfo.hostname,
         'Content-Type': 'application/x-www-form-urlencoded',
+        'Content-Length': 0,
         'Authorization': OAuth.toAuthorizationHeaderString(oauthHeader)
     };
     var request = client.request('POST', urlInfo.pathname, headers);
