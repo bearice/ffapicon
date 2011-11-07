@@ -78,6 +78,10 @@
                                 		val = val.join(';');
                                 	res += htmlencode(k) + ": "+ htmlencode(val)+"\r\n";
                                 }
+                                if(data.response.headers['content-type'] 
+                                	&& /application\/json/.test(data.response.headers['content-type'])){
+                                    data.response.body = JSON.stringify(JSON.parse(data.response.body),false,4)
+                                }
                                 res += "\r\n" + htmlencode(data.response.body);
                                 res += "</PRE>";
                                 $('#response').html(res);
