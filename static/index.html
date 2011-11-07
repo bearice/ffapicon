@@ -1,20 +1,42 @@
 <html>
     <head>
         <title>Fanfou API Console</title>
+        <style>
+        .error {
+            color: red;
+        }
+        </style>
         <script src="jquery.js"></script>
         <script>
             $(function(){
             	function htmlencode(string) {
-            			    return string.replace(/\&/g,'&'+'amp;').replace(/</g,'&'+'lt;')
-            			            .replace(/>/g,'&'+'gt;').replace(/\'/g,'&'+'apos;').replace(/\"/g,'&'+'quot;');
+            		return string
+            		    .replace(/\&/g,'&'+'amp;')
+            		    .replace(/</g,'&'+'lt;')
+            		    .replace(/>/g,'&'+'gt;')
+            		    .replace(/\'/g,'&'+'apos;')
+            		    .replace(/\"/g,'&'+'quot;');
                 }
                 $("#commit").click(function(){
-                    $.post('/commit',JSON.stringify({
-                        path: $('#path').val(),
-                        method: 'GET',
-                        oauth: $('#oauth').attr('checked'),
-                    }),function(data){
-                        $('#result').html(htmlencode(JSON.stringify(data,false,2)));
+                	$('#loading').show();
+                	$('#result').hide();
+                    $.ajax('/commit',{
+                    	type: 'POST',
+                    	contentType: 'application/json',
+                    	data: JSON.stringify({
+                            path: $('#path').val(),
+                            method: 'GET',
+                            oauth: $('#oauth').attr('checked') == true,
+                        }),
+                        dataType: 'json',
+                        success: function(data){
+                	        $('#loading').hide();
+                            $('#result').show().html(htmlencode(JSON.stringify(data,false,2)));
+                        },
+                        error: function(e) {
+                            $('#loading').hide();
+                            $('#result').show().html('<div class="error">'+htmlencode(e.toString())+'</div>');
+                        },
                     });
                 });
             });
@@ -22,9 +44,14 @@
     </head>
     <body>
         <a href="/login">Login</a><br/>
-        <input type='text' name='path' id='path' value="/account/verify_credentials.json" size="100"/>
-        <input type="checkbox" name="oauth" id="oauth" />OAuth?
-        <button id='commit'>Commit</button>
-        <pre id='result'></pre>
+        <p>
+            <input type='text' name='path' id='path' value="/account/verify_credentials.json" size="100"/>
+            <input type="checkbox" name="oauth" id="oauth" /><label for='oauth'>OAuth?</label>
+            <button id='commit'>Commit</button>
+        </p>
+        <p>
+            <img id='loading' src='loading.gif' style="display:none"></img>
+            <div id='result' style="display:none"></div>
+        </p>
     </body>
 </html>

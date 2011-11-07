@@ -95,9 +95,13 @@ function verify(req,resp){
 }
 
 function commit(req,resp){
+    function end(obj){
+    	//console.info(obj);
+        resp.setHeader("Content-Type","application/json");
+        resp.end(JSON.stringify(obj));
+    }
 	if(req.method!='POST'){
-        resp.writeHead(400);
-        resp.end("need post");
+        end({error:'Need POST'});
         return; 
     }
     var postData = "";
@@ -109,40 +113,45 @@ function commit(req,resp){
         try{
             cReq = JSON.parse(postData);
         }catch(e){
-            resp.writeHead(500);
-            resp.end(e.toString());
+            end({error:'Failed to parse JSON'});
             return;
         }
         cReq.host = "api.fanfou.com";
         cReq.port = 80;
-
+        cReq.headers = cReq.headers ? cReq.headers : new Object();
+        cReq.body = "";
         if(cReq.oauth){
             var oa = getSession(req.cookies);
             if(!oa){
-                resp.writeHead(500);
-                resp.end("Not authoeicated");
+                end({error:'Not Authorized'});
                 return;
             }
-            var url = "http://"+cReq.host+cReq.path;
-            var header = oa.generateAuthorizationString(cReq.method,url,cReq.param);
-            if(!cReq.headers)cReq.headers=new Array();
+            var _url = "http://"+cReq.host+cReq.path;
+            var param = url.parse(cReq.path,true).query;
+            if(cReq.param){
+            	for(k in cReq.param)
+                    param[k] = cReq.param[k];
+            }
+            var header = oa.generateAuthorizationString(cReq.method,_url,param);
             cReq.headers['Authorization']=header;
         }
-        var body = "";
+
         if(cReq.method=='POST'){
-            body = qs.stringify(cReq.param);
+            cReq.body = qs.stringify(cReq.param);
             cReq.headers['Content-Type'] = "application/x-www-form-urlencoded";
             cReq.headers['Content-Length'] = body.length;
         }
-        console.info(cReq);
-        http.request(cReq, function(cres) {
-        	var cReq = {
-                host: this.host,
-                path: this.path,
-                method: this.method,
-                headers: this.headers,
-                param: this.param,
-            };
+
+        cReq.headers['Host'] = cReq.host;
+        var options = {
+        	method: cReq.method,
+            host: cReq.host,
+            port: cReq.port,
+            path: cReq.path,
+            headers: cReq.headers,
+        }
+        //console.info(options);
+        http.request(options, function(cres) {
         	var cResp = {
                 statusCode: cres.statusCode,
                 httpVersion: cres.httpVersion,
@@ -168,11 +177,7 @@ function commit(req,resp){
                     error: null,
                 });
             });
-            function end(obj){
-                resp.setHeader("Content-Type","application/json");
-                resp.end(JSON.stringify(obj));
-            }
-        }).end();
+        }).end(cReq.body);
     });
 }
 function static(req,resp){
