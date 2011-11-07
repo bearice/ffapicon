@@ -1,5 +1,4 @@
-#!/usr/local/bin/node
-var OAuth = require('./oauth').OAuth;
+#!/usr/bin/env node 
 
 var fs = require('fs');
 var qs = require('querystring');
@@ -7,7 +6,9 @@ var url = require('url');
 var http = require('http');
 var path = require('path');
 var crypto = require('crypto');
+
 var Cookies = require('./cookies');
+var OAuth = require('./oauth');
 var mime = require('./mime');
 var config = require('./config');
 
@@ -19,7 +20,7 @@ function resetSessionTimeout(session){
     	clearTimeout(session.timeoutId);
     }
     session.timeoutId = setTimeout(function(){
-        sessions[sid] = null;
+        sessions[session.id] = null;
     },session.timeout);
 }
 
@@ -52,6 +53,7 @@ function setSession(cookies,val){
     var session = {
         timeout : 3600000,
         value : val,
+        id : sid,
     };
     sessions[sid] = session;
     resetSessionTimeout(session);
@@ -92,40 +94,87 @@ function verify(req,resp){
     }
 }
 
-function home(req,resp){
-    var oa = getSession(req.cookies);
-    if(oa){
-        var method = "GET";
-        var uri = "http://api.fanfou.com/account/verify_credentials.json";
-        var param = {};
-        var header = oa.generateAuthorizationString(method,uri,param);
-        var options = {
-            host: 'api.fanfou.com',
-            port: 80,
-            path: '/account/verify_credentials.json',
-            method: 'GET',
-            headers:{
-                'Authorization':header
-            },
-        };
+function commit(req,resp){
+	if(req.method!='POST'){
+        resp.writeHead(400);
+        resp.end("need post");
+        return; 
+    }
+    var postData = "";
+    req.setEncoding('utf8');
+    req.on('data',function(data){
+        postData += data;
+    });
+    req.on('end',function(){
+        try{
+            cReq = JSON.parse(postData);
+        }catch(e){
+            resp.writeHead(500);
+            resp.end(e.toString());
+            return;
+        }
+        cReq.host = "api.fanfou.com";
+        cReq.port = 80;
 
-        var creq = http.request(options, function(cres) {
-        	resp.writeHead(cres.statusCode, cres.headers);
+        if(cReq.oauth){
+            var oa = getSession(req.cookies);
+            if(!oa){
+                resp.writeHead(500);
+                resp.end("Not authoeicated");
+                return;
+            }
+            var url = "http://"+cReq.host+cReq.path;
+            var header = oa.generateAuthorizationString(cReq.method,url,cReq.param);
+            if(!cReq.headers)cReq.headers=new Array();
+            cReq.headers['Authorization']=header;
+        }
+        var body = "";
+        if(cReq.method=='POST'){
+            body = qs.stringify(cReq.param);
+            cReq.headers['Content-Type'] = "application/x-www-form-urlencoded";
+            cReq.headers['Content-Length'] = body.length;
+        }
+        console.info(cReq);
+        http.request(cReq, function(cres) {
+        	var cReq = {
+                host: this.host,
+                path: this.path,
+                method: this.method,
+                headers: this.headers,
+                param: this.param,
+            };
+        	var cResp = {
+                statusCode: cres.statusCode,
+                httpVersion: cres.httpVersion,
+                headers: cres.headers,
+                trialers: cres.trialers,
+                body: "",
+            };
             cres.setEncoding('utf8');
             cres.on('data', function (chunk) {
-                resp.write(chunk);
+                cResp.body += chunk;
+            });
+            cres.on('error',function(e){
+                end({
+                    request: cReq,
+                    response: null,
+                    error: e.toString(),
+                });
             });
             cres.on('end',function(){
-                resp.end();
+                end({
+                    request: cReq,
+                    response: cResp,
+                    error: null,
+                });
             });
-        });
-        creq.end();
-    }else{
-        resp.writeHead(302, { "Location": "/login" });
-        resp.end();
-    }
+            function end(obj){
+                resp.setHeader("Content-Type","application/json");
+                resp.end(JSON.stringify(obj));
+            }
+        }).end();
+    });
 }
-
 function static(req,resp){
     var p = path.normalize(req.info.pathname);
     if(p=="/")p="/index.html";
@@ -143,7 +192,25 @@ function static(req,resp){
         resp.end("<html><body><h1>?_? Not found</h1></body></html>");
         return;
     }
-    resp.writeHead(200,{'Content-Length':stat.size,'Content-Type':mime.mime_type(p)});
+    var mtime = req.headers['if-modified-since'];
+    if(mtime){
+        if(mtime == stat.mtime.toString()){
+            resp.writeHead(304,{
+    	        'Date'          : stat.ctime.toString(),
+            	'Last-Modified' : stat.mtime.toString(),
+    	        'Cache-Control' : 'max-age=31536000',
+            });
+            resp.end();
+            return;
+        }
+    }
+    resp.writeHead(200,{
+    	'Content-Length': stat.size,
+    	'Content-Type'  : mime.mime_type(p),
+    	'Date'          : stat.ctime.toString(),
+    	'Last-Modified' : stat.mtime.toString(),
+    	'Cache-Control' : 'max-age=31536000',
+    });
     var s = fs.createReadStream(p);
     s.on("end", function() {
         resp.end();
@@ -158,8 +225,9 @@ function static(req,resp){
 http.createServer(function (request, response) {
     request.cookies = new Cookies(request,response,"balabala");
     request.info = url.parse(request.url,true);
-    if(request.info.pathname=='/'){
-        home(request,response);
+    response.setHeader("Server","KumaChan4J/1.0");
+    if(request.info.pathname=='/commit'){
+        commit(request,response);
     }else if(request.info.pathname=='/login'){
         login(request,response);
     }else if(request.info.pathname=='/verify'){

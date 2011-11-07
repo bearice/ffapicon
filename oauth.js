@@ -225,5 +225,5 @@ OAuth.signHmacSha1 = function(baseString, key) {
     return signer.digest('base64');
 };
 
-exports.OAuth = OAuth;
+module.exports = OAuth;
 

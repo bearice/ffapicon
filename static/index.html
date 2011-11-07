@@ -1,0 +1,26 @@
+<html>
+    <head>
+        <title>Fanfou API Console</title>
+        <script src="jquery.js"></script>
+        <script>
+            $(function(){
+                $("#commit").click(function(){
+                    $.post('/commit',JSON.stringify({
+                        path: $('#path').val(),
+                        method: 'GET',
+                        oauth: $('#oauth').attr('checked'),
+                    }),function(data){
+                        $('#result').html(JSON.stringify(data,false,2));
+                    });
+                });
+            });
+        </script>
+    </head>
+    <body>
+        <a href="/login">Login</a><br/>
+        <input type='text' name='path' id='path' value="/account/verify_credentials.json" size="100"/>
+        <input type="checkbox" name="oauth" id="oauth" />OAuth?
+        <button id='commit'>Commit</button>
+        <pre id='result'></pre>
+    </body>
+</html>
