@@ -4,13 +4,17 @@
         <script src="jquery.js"></script>
         <script>
             $(function(){
+            	function htmlencode(string) {
+            			    return string.replace(/\&/g,'&'+'amp;').replace(/</g,'&'+'lt;')
+            			            .replace(/>/g,'&'+'gt;').replace(/\'/g,'&'+'apos;').replace(/\"/g,'&'+'quot;');
+                }
                 $("#commit").click(function(){
                     $.post('/commit',JSON.stringify({
                         path: $('#path').val(),
                         method: 'GET',
                         oauth: $('#oauth').attr('checked'),
                     }),function(data){
-                        $('#result').html(JSON.stringify(data,false,2));
+                        $('#result').html(htmlencode(JSON.stringify(data,false,2)));
                     });
                 });
             });
