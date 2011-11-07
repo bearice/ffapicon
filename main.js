@@ -59,6 +59,20 @@ function setSession(cookies,val){
     resetSessionTimeout(session);
 }
 
+function check_session(req,resp){
+	var obj = {};
+    var oa = getSession(req.cookies);
+    if(oa && oa.user_detail){
+        obj.login = true;
+        obj.name  = oa.user_detail.name
+    }else{
+        obj.login = false;
+        obj.name  = null;
+    }
+    resp.setHeader("Content-Type","application/json");
+    resp.end(JSON.stringify(obj));
+}
+
 function login(req,resp){
 	var oa = new OAuth(config.oauth);
     setSession(req.cookies,oa);
@@ -81,8 +95,36 @@ function verify(req,resp){
         oa.setOAuthVerifier(token);
         oa.acquireAccessToken(function(oa){
         	if(!oa.statusCode){
-                resp.writeHead(302, { "Location": "/" });
-                resp.end();
+                var header = oa.generateAuthorizationString(
+                    "GET","http://api.fanfou.com/account/verify_credentials.json",{}
+                );
+                
+                var options = {
+                    host: 'api.fanfou.com',
+                    port: 80,
+                    path: '/account/verify_credentials.json',
+                    method: 'GET',
+                    headers:{
+                        'Authorization'  : header
+                    },
+                };
+                var data = "";
+                http.request(options, function(res) {
+                    res.setEncoding('utf8');
+                    res.on('data', function (chunk) {
+                        data += chunk;
+                    });
+                    res.on('end', function(){
+                    	try{
+                    		data = JSON.parse(data);
+                    		oa.user_detail = data;
+                    	}catch(e){
+                    		console.error(e);
+                        }
+                        resp.writeHead(302, { "Location": "/" });
+                        resp.end();
+                    });
+                }).end();
             }else{
                 resp.writeHead(500);
                 resp.end(String(oa));
@@ -119,7 +161,6 @@ function commit(req,resp){
         cReq.host = "api.fanfou.com";
         cReq.port = 80;
         cReq.headers = cReq.headers ? cReq.headers : new Object();
-        cReq.body = "";
         if(cReq.oauth){
             var oa = getSession(req.cookies);
             if(!oa){
@@ -128,18 +169,18 @@ function commit(req,resp){
             }
             var _url = "http://"+cReq.host+cReq.path;
             var param = url.parse(cReq.path,true).query;
-            if(cReq.param){
-            	for(k in cReq.param)
-                    param[k] = cReq.param[k];
+            if(cReq.method=='POST' && cReq.body){
+            	var postparam = qs.parse(cReq.body);
+            	for(k in postparam)
+                    param[k] = postparam[k];
             }
             var header = oa.generateAuthorizationString(cReq.method,_url,param);
             cReq.headers['Authorization']=header;
         }
 
         if(cReq.method=='POST'){
-            cReq.body = qs.stringify(cReq.param);
             cReq.headers['Content-Type'] = "application/x-www-form-urlencoded";
-            cReq.headers['Content-Length'] = body.length;
+            cReq.headers['Content-Length'] = cReq.body.length;
         }
 
         cReq.headers['Host'] = cReq.host;
@@ -154,6 +195,7 @@ function commit(req,resp){
         http.request(options, function(cres) {
         	var cResp = {
                 statusCode: cres.statusCode,
+                status: http.STATUS_CODES[cres.statusCode],
                 httpVersion: cres.httpVersion,
                 headers: cres.headers,
                 trialers: cres.trialers,
@@ -164,11 +206,7 @@ function commit(req,resp){
                 cResp.body += chunk;
             });
             cres.on('error',function(e){
-                end({
-                    request: cReq,
-                    response: null,
-                    error: e.toString(),
-                });
+                end({error: e.toString()});
             });
             cres.on('end',function(){
                 end({
@@ -187,7 +225,7 @@ function static(req,resp){
         p = "/static" + p;
     }
     p = "."+p;
-    console.info(p);
+    //console.info(p);
     var stat = null;
     try{
     	stat = fs.statSync(p);
@@ -216,6 +254,10 @@ function static(req,resp){
     	'Last-Modified' : stat.mtime.toString(),
     	'Cache-Control' : 'max-age=31536000',
     });
+    if(req.head=='HEAD'){
+        resp.end();
+        return;
+    }
     var s = fs.createReadStream(p);
     s.on("end", function() {
         resp.end();
@@ -228,6 +270,7 @@ function static(req,resp){
 }
 
 http.createServer(function (request, response) {
+	console.info("%s %s %s",request.connection.remoteAddress,request.method,request.url);
     request.cookies = new Cookies(request,response,"balabala");
     request.info = url.parse(request.url,true);
     response.setHeader("Server","KumaChan4J/1.0");
@@ -237,6 +280,8 @@ http.createServer(function (request, response) {
         login(request,response);
     }else if(request.info.pathname=='/verify'){
         verify(request,response);
+    }else if(request.info.pathname=='/check_session'){
+        check_session(request,response);
     }else{
         static(request,response);
     }

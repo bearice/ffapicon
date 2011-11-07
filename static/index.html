@@ -2,40 +2,90 @@
     <head>
         <title>Fanfou API Console</title>
         <style>
-        .error {
+        #error {
             color: red;
+        }
+        #content{
+            width: 80em;
+            height: 5em;
         }
         </style>
         <script src="jquery.js"></script>
         <script>
             $(function(){
+                $.getJSON('/check_session', function(data) {
+                	$("#init").hide();
+                    if(data.login){
+                        $("#userinfo").show();
+                        $("#username").html(htmlencode(data.name));
+                        $("#oauth").attr("disabled",false);
+                    }else{
+                        $("#login").show();
+                    }
+                });
             	function htmlencode(string) {
-            		return string
+            		return string.toString()
             		    .replace(/\&/g,'&'+'amp;')
             		    .replace(/</g,'&'+'lt;')
             		    .replace(/>/g,'&'+'gt;')
             		    .replace(/\'/g,'&'+'apos;')
             		    .replace(/\"/g,'&'+'quot;');
                 }
+                $("#method").change(function(){
+                    if($(this).val()=='POST'){
+                        $('#content').show();
+                    }else{
+                        $('#content').hide();
+                    }
+                });
                 $("#commit").click(function(){
                 	$('#loading').show();
                 	$('#result').hide();
+                	$('#error').hide();
                     $.ajax('/commit',{
                     	type: 'POST',
                     	contentType: 'application/json',
                     	data: JSON.stringify({
                             path: $('#path').val(),
-                            method: 'GET',
-                            oauth: $('#oauth').attr('checked') == true,
+                            method: $('#method').val(),
+                            oauth: $('#oauth').is(':checked'),
+                            body: $('#content').val(),
                         }),
                         dataType: 'json',
                         success: function(data){
                 	        $('#loading').hide();
-                            $('#result').show().html(htmlencode(JSON.stringify(data,false,2)));
+                	        if(data.error){
+                                $('#error')
+                                    .show()
+                                    .html(htmlencode(data.error,false,2));
+                            }else{
+                                $('#result').show();
+                                var req = "<PRE>";
+                                req += data.request.method + " ";
+                                req += htmlencode(data.request.path) + " HTTP/1.1\r\n";
+                                for(k in data.request.headers){
+                                    req += htmlencode(k) + ": "+ htmlencode(data.request.headers[k])+"\r\n";
+                                }
+                                req += "\r\n" + htmlencode(data.request.body);
+                                req += "</PRE>";
+                                $('#request').html(req);
+
+                                var res = "<PRE>";
+                                res += data.response.statusCode + " " + data.response.status + " HTTP/"+data.response.httpVersion + "\r\n";
+                                for(k in data.response.headers){
+                                	var val = data.response.headers[k];
+                                	if(val instanceof Array)
+                                		val = val.join(';');
+                                	res += htmlencode(k) + ": "+ htmlencode(val)+"\r\n";
+                                }
+                                res += "\r\n" + htmlencode(data.response.body);
+                                res += "</PRE>";
+                                $('#response').html(res);
+                            }
                         },
                         error: function(e) {
                             $('#loading').hide();
-                            $('#result').show().html('<div class="error">'+htmlencode(e.toString())+'</div>');
+                            $('#error').show().html(htmlencode(e.toString()));
                         },
                     });
                 });
@@ -43,15 +93,28 @@
         </script>
     </head>
     <body>
-        <a href="/login">Login</a><br/>
+        <div id='init'><img src='loading.gif' style="display:none"></img>Loading...</div>
+        <div id='login' style="display:none"><a href="/login">Login with OAuth</a></div>
+        <div id='userinfo' style="display:none">Login as user: @<span id='username'></span></div>
         <p>
+            <select name='method' id='method'>
+                <option value='GET'>GET</option>
+                <option value='POST'>POST</option>
+            </select>
             <input type='text' name='path' id='path' value="/account/verify_credentials.json" size="100"/>
-            <input type="checkbox" name="oauth" id="oauth" /><label for='oauth'>OAuth?</label>
-            <button id='commit'>Commit</button>
+            <input type="checkbox" name="oauth" id="oauth" disabled/><label for='oauth'>OAuth?</label>
+            <button id='commit'>Commit</button><br/>
+            <textarea id='content' style="display:none"></textarea>
         </p>
         <p>
             <img id='loading' src='loading.gif' style="display:none"></img>
-            <div id='result' style="display:none"></div>
+            <div id='error' style="display:none"></div>
+            <div id='result' style="display:none">
+                <span>Request:</span>
+                <div id='request'></div>
+                <span>Response:</span>
+                <div id='response'></div>
+            </div>
         </p>
     </body>
 </html>

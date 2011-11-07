@@ -25,7 +25,7 @@ OAuth.prototype.acquireRequestToken = function(body, callback, ctx) {
     var oauthHeader = OAuth.buildRequestAuthorizationHeader(this);
     var signatureBaseString = OAuth.generateSignatureBaseString('POST',
         this.config.requestTokenURI, oauthHeader, body);
-    console.log('baseString: '+ signatureBaseString);
+    //console.log('baseString: '+ signatureBaseString);
     oauthHeader['oauth_signature'] = OAuth.sign(this, signatureBaseString);
     
     var body = querystring.stringify(body);
@@ -46,7 +46,7 @@ OAuth.prototype.acquireRequestToken = function(body, callback, ctx) {
         if(+response.statusCode === 200) {
             response.setEncoding('utf8');
             response.on('data', function(data) {
-          		console.log(data);
+          		//console.log(data);
                 OAuth.parseOAuthBody(data.toString(), oauth);
                 callback && callback.call(ctx, oauth);
             });
@@ -101,7 +101,7 @@ OAuth.prototype.acquireAccessToken = function(callback, ctx){
             response.on('data', function(data) {
                 OAuth.parseOAuthBody(data.toString(), oauth);
                 callback && callback.call(ctx, oauth);
-                console.log(data.toString());
+                //console.log(data.toString());
             });
         } else {
             console.log('ERROR: '+ response.statusCode);
