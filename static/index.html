@@ -9,6 +9,24 @@
             width: 80em;
             height: 5em;
         }
+        .elem{
+            padding-left:2em;
+        }
+        pre{
+        	font-family: monaco,monospace,courier;
+        }
+        .cdata{
+            color: green;
+        }
+        .tag{
+        	color: blue;
+        }
+        .ctag{
+        	color: red;
+        }
+        .rootelem{
+            padding-left:-2em;
+        }
         </style>
         <script src="jquery.js"></script>
         <script>
@@ -23,14 +41,7 @@
                         $("#login").show();
                     }
                 });
-            	function htmlencode(string) {
-            		return string.toString()
-            		    .replace(/\&/g,'&'+'amp;')
-            		    .replace(/</g,'&'+'lt;')
-            		    .replace(/>/g,'&'+'gt;')
-            		    .replace(/\'/g,'&'+'apos;')
-            		    .replace(/\"/g,'&'+'quot;');
-                }
+
                 $("#method").change(function(){
                     if($(this).val()=='POST'){
                         $('#content').show();
@@ -42,11 +53,17 @@
                 	$('#loading').show();
                 	$('#result').hide();
                 	$('#error').hide();
+                	var path = $('#path').val();
+                	if(!/^\//.test(path)){
+                        path = "/"+path;
+                        $('#path').val(path);
+                    }
+                    path += $('#type').val();
                     $.ajax('/commit',{
                     	type: 'POST',
                     	contentType: 'application/json',
                     	data: JSON.stringify({
-                            path: $('#path').val(),
+                            path: path,
                             method: $('#method').val(),
                             oauth: $('#oauth').is(':checked'),
                             body: $('#content').val(),
@@ -78,12 +95,21 @@
                                 		val = val.join(';');
                                 	res += htmlencode(k) + ": "+ htmlencode(val)+"\r\n";
                                 }
-                                if(data.response.headers['content-type'] 
-                                	&& /application\/json/.test(data.response.headers['content-type'])){
-                                    data.response.body = JSON.stringify(JSON.parse(data.response.body),false,4)
+                                if(data.response.headers['content-type']){
+                                	if(/application\/json/.test(data.response.headers['content-type'])){
+                                        data.response.body = JSON.stringify(JSON.parse(data.response.body),false,4)
+                                        res += "\r\n" + htmlencode(data.response.body);
+                                        res += "</PRE>";
+                                    }else if(/application\/xml/.test(data.response.headers['content-type'])){
+                                        res += "</PRE>";
+                                        var xml = $.parseXML(data.response.body);
+                                        res += "<div class='rootelem'>"+formatXML(xml.documentElement)+"</div>";
+                                    }
+                                }else{
+                                    res += "\r\n" + htmlencode(data.response.body);
+                                    res += "</PRE>";
                                 }
-                                res += "\r\n" + htmlencode(data.response.body);
-                                res += "</PRE>";
+
                                 $('#response').html(res);
                             }
                         },
@@ -94,6 +120,39 @@
                     });
                 });
             });
+           	function htmlencode(string) {
+           		return string.toString()
+            		    .replace(/\&/g,'&'+'amp;')
+            		    .replace(/</g,'&'+'lt;')
+            		    .replace(/>/g,'&'+'gt;')
+            		    .replace(/\'/g,'&'+'apos;')
+            		    .replace(/\"/g,'&'+'quot;');
+            }
+            function formatXML(node){
+            	if(node.nodeType==3){
+            		var data = htmlencode(node.data);
+            		return "<span class='cdata'>"+data+"</span>";
+                }
+            	if(node.nodeType==4){
+            		var data = htmlencode(node.data);
+            		var ret = "<span class='ctag'>"+htmlencode("<![CDATA[") + "</span>"+
+            	        	"<span class='cdata'>"+data+"</span>"+
+            	           "<span class='ctag'>"+htmlencode("]]>") + "</span>";
+            	    return ret;
+                }
+            	if(!node.nodeName){
+            	    return "";	
+                }
+                var ret = "<div class='elem'><span class='tag'>&"+"lt;"+htmlencode(node.nodeName)+"</span>"
+                
+                ret += "<span class='tag'>&"+"gt;</span>";
+                for(k in node.childNodes){
+                    ret += formatXML(node.childNodes[k]);
+                }
+                ret += "<span class='tag'>&lt"+";"+htmlencode(node.nodeName)+"&gt"+";</span>";
+                ret += "</div>";
+                return ret;
+            }
         </script>
     </head>
     <body>
@@ -106,6 +165,12 @@
                 <option value='POST'>POST</option>
             </select>
             <input type='text' name='path' id='path' value="/account/verify_credentials.json" size="100"/>
+            <select name='type' id='type'>
+                <option value='.json' selected>.json</option>
+                <option value='.xml'>.xml</option>
+                <option value='.rss'>.rss</option>
+                <option value=''></option>
+            </select>
             <input type="checkbox" name="oauth" id="oauth" disabled/><label for='oauth'>OAuth?</label>
             <button id='commit'>Commit</button><br/>
             <textarea id='content' style="display:none"></textarea>
