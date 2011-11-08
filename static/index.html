@@ -188,9 +188,10 @@
                             ret += formatJSON(k);
                             ret += "<span class='json comma'>:</span>";
                             ret += formatJSON(v);
-                        	ret += "</div>";        
+                        	ret += ",</div>";        
                         }
-                        ret += "</div><span class='json bracket'>}</span>";
+                        ret = ret.substr(0,ret.length-7);
+                        ret += "</div></div><span class='json bracket'>}</span>";
                         return ret;
                 }
             }
