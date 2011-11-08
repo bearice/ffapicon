@@ -9,7 +9,7 @@
             width: 80em;
             height: 5em;
         }
-        .elem{
+        .elem_warp{
             padding-left:2em;
         }
         pre{
@@ -24,12 +24,36 @@
         .ctag{
         	color: red;
         }
-        .rootelem{
-            padding-left:-2em;
+        #formated span {
+            line-height:120%;
+        }
+        .objblk {
+            padding-left:2em;
+        }
+        .string {
+        	color: #0B7500;
+        }
+        .comma {
+            padding-left: 20px;
+            margin-left: -20px;
+            position: relative;
+        }
+        .boolean {
+            color: red;
+        }
+        .number {
+            color: blue;
+        }
+        .bracket {
+            display: block;
+        }
+        #origin {
+            display: none;
         }
         </style>
         <script src="jquery.js"></script>
         <script>
+            var formated_display = true;
             $(function(){
                 $.getJSON('/check_session', function(data) {
                 	$("#init").hide();
@@ -97,20 +121,28 @@
                                 }
                                 if(data.response.headers['content-type']){
                                 	if(/application\/json/.test(data.response.headers['content-type'])){
-                                        data.response.body = JSON.stringify(JSON.parse(data.response.body),false,4)
-                                        res += "\r\n" + htmlencode(data.response.body);
-                                        res += "</PRE>";
+                                		res += "</PRE><button id='show_origin'>Show Origin</button><PRE id='origin'>"
+                                		res += htmlencode(data.response.body);
+                                		res += "</PRE>";
+                                		res += "<div id='formated'>";
+                                        res += formatJSON(JSON.parse(data.response.body));
+                                        res += "</div>";
                                     }else if(/application\/xml/.test(data.response.headers['content-type'])){
-                                        res += "</PRE>";
-                                        var xml = $.parseXML(data.response.body);
-                                        res += "<div class='rootelem'>"+formatXML(xml.documentElement)+"</div>";
+                                		res += "</PRE><button id='show_origin'>Show Origin</button><PRE id='origin'>"
+                                		res += htmlencode(data.response.body);
+                                		res += "</PRE>";
+                                        res += "<div id='formated'>";
+                                        res += "<span class='tag'>"+htmlencode('<?xml version="1.0" encoding="UTF-8"?>')+"</span>";
+                                        res += formatXML($.parseXML(data.response.body).documentElement);
+                                        res += "</div>";
                                     }
                                 }else{
                                     res += "\r\n" + htmlencode(data.response.body);
                                     res += "</PRE>";
                                 }
-
+                                
                                 $('#response').html(res);
+                                formated_display = true;
                             }
                         },
                         error: function(e) {
@@ -118,6 +150,18 @@
                             $('#error').show().html(htmlencode(e.toString()));
                         },
                     });
+                });
+                $("#response").on('click','#show_origin',function(){
+                	if(formated_display){
+                        $('#origin').show();
+                        $('#formated').hide();
+                        $(this).html("Show Formated");
+                    }else{
+                        $('#origin').hide();
+                        $('#formated').show();
+                        $(this).html("Show Origin");
+                    }
+                    formated_display = !formated_display;
                 });
             });
            	function htmlencode(string) {
@@ -127,6 +171,28 @@
             		    .replace(/>/g,'&'+'gt;')
             		    .replace(/\'/g,'&'+'apos;')
             		    .replace(/\"/g,'&'+'quot;');
+            }
+            function formatJSON(obj){
+                switch(typeof(obj)){
+                    case 'string':
+                        return "\"<span class='json string'>"+htmlencode(obj)+"</span>\"";
+                    case 'number':
+                        return "<span class='json number'>"+obj+"</span>";
+                    case 'boolean':
+                        return "<span class='json boolean'>"+obj+"</span>";
+                    case 'object':
+                        var ret = "<span class='json bracket'>{</span><div class='json objblk'>";
+                        for(k in obj){
+                        	ret += "<div class='json kvpair'>";
+                            var v = obj[k];
+                            ret += formatJSON(k);
+                            ret += "<span class='json comma'>:</span>";
+                            ret += formatJSON(v);
+                        	ret += "</div>";        
+                        }
+                        ret += "</div><span class='json bracket'>}</span>";
+                        return ret;
+                }
             }
             function formatXML(node){
             	if(node.nodeType==3){
@@ -141,15 +207,26 @@
             	    return ret;
                 }
             	if(!node.nodeName){
+            		console.log(node);
             	    return "";	
                 }
                 var ret = "<div class='elem'><span class='tag'>&"+"lt;"+htmlencode(node.nodeName)+"</span>"
-                
+                //attributes
                 ret += "<span class='tag'>&"+"gt;</span>";
-                for(k in node.childNodes){
-                    ret += formatXML(node.childNodes[k]);
+                if(node.childNodes.length){
+                    if(node.childNodes.length==1 && 
+                        (node.childNodes[0].nodeType == 3 ||node.childNodes.nodeType ==4 )
+                    ){
+                        ret += formatXML(node.childNodes[0]);
+                    }else{
+                        ret += "<div class='elem_warp'>";
+                        for(k in node.childNodes){
+                            ret += formatXML(node.childNodes[k]);
+                        }
+                        ret += "</div>";
+                    }
                 }
-                ret += "<span class='tag'>&lt"+";"+htmlencode(node.nodeName)+"&gt"+";</span>";
+                ret += "<span class='tag'>&lt"+";/"+htmlencode(node.nodeName)+"&gt"+";</span>";
                 ret += "</div>";
                 return ret;
             }
@@ -164,7 +241,7 @@
                 <option value='GET'>GET</option>
                 <option value='POST'>POST</option>
             </select>
-            <input type='text' name='path' id='path' value="/account/verify_credentials.json" size="100"/>
+            <input type='text' name='path' id='path' value="/account/verify_credentials" size="100"/>
             <select name='type' id='type'>
                 <option value='.json' selected>.json</option>
                 <option value='.xml'>.xml</option>
