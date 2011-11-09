@@ -187,7 +187,7 @@
             function formatJSON(obj){
                switch(typeof(obj)){
                     case 'string':
-                        return "\"<span class='json string'>"+htmlencode(obj)+"</span>\"";
+                        return "\"<span class='json string'>"+htmlencode(obj.replace(/"/gm,"\\\""))+"</span>\"";
                     case 'number':
                         return "<span class='json number'>"+obj+"</span>";
                     case 'boolean':
