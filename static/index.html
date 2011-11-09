@@ -6,7 +6,7 @@
             color: red;
         }
         #content{
-            width: 80em;
+            width: 90%;
             height: 5em;
         }
         .elem_warp{
@@ -45,7 +45,7 @@
             color: blue;
         }
         .bracket {
-            display: block;
+            /*display: block;*/
         }
         #origin {
             display: none;
@@ -172,8 +172,20 @@
             		    .replace(/\'/g,'&'+'apos;')
             		    .replace(/\"/g,'&'+'quot;');
             }
+           	var hasOwnProperty = Object.prototype.hasOwnProperty;
+
+          	function is_empty(o) {
+               if (!o) return false;
+               if (o.length && o.length > 0)    return false;
+               for (var key in o) {
+               	   console.info(key);
+                   if (hasOwnProperty.call(o, key))    return false;
+               }
+               return true;
+            }
+
             function formatJSON(obj){
-                switch(typeof(obj)){
+               switch(typeof(obj)){
                     case 'string':
                         return "\"<span class='json string'>"+htmlencode(obj)+"</span>\"";
                     case 'number':
@@ -181,18 +193,38 @@
                     case 'boolean':
                         return "<span class='json boolean'>"+obj+"</span>";
                     case 'object':
-                        var ret = "<span class='json bracket'>{</span><div class='json objblk'>";
-                        for(k in obj){
-                        	ret += "<div class='json kvpair'>";
-                            var v = obj[k];
-                            ret += formatJSON(k);
-                            ret += "<span class='json comma'>:</span>";
-                            ret += formatJSON(v);
-                        	ret += ",</div>";        
+                        if(obj instanceof Array){
+                            var ret = "<span class='json bracket'>[</span>";
+                            if(!is_empty(obj)){
+                                ret += "<div class='json objblk'>";
+                                for(k in obj){
+                                    ret += "<div class='json kvpair'>";
+                                    var v = obj[k];
+                                    ret += formatJSON(v);
+                                    ret += ",</div>";        
+                                }
+                                ret = ret.substr(0,ret.length-7) + "</div></div>";
+                            }
+                            ret += "<span class='json bracket'>]</span>";
+                            return ret;
+
+                        }else{
+                            var ret = "<span class='json bracket'>{</span>";
+                            if(!is_empty(obj)){
+                                ret += "<div class='json objblk'>";
+                                for(k in obj){
+                                    ret += "<div class='json kvpair'>";
+                                    var v = obj[k];
+                                    ret += formatJSON(k);
+                                    ret += "<span class='json comma'>:</span>";
+                                    ret += formatJSON(v);
+                                    ret += ",</div>";        
+                                }
+                                ret = ret.substr(0,ret.length-7) + "</div></div>";
+                            }
+                            ret += "<span class='json bracket'>}</span>";
+                            return ret;
                         }
-                        ret = ret.substr(0,ret.length-7);
-                        ret += "</div></div><span class='json bracket'>}</span>";
-                        return ret;
                 }
             }
             function formatXML(node){
