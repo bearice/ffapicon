@@ -5,7 +5,7 @@ var oauth = {
     signatureMethod   : 'HMAC-SHA1',
     consumerKey       : 'YOUR_API_KEY',
     consumerSecret    : 'YOUR_API_SECRET',
-    callbackURI       : 'http://YOUR_HOST:YOUR_PORT',
+    callbackURI       : 'http://YOUR_HOST:YOUR_PORT/verify',
 };
 
 var httpd = {
