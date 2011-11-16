@@ -16,4 +16,5 @@ var httpd = {
 module.exports = {
     oauth : oauth,
     httpd : httpd,
+    server: "api.fanfou.com",
 }

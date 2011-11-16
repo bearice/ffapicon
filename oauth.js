@@ -126,6 +126,11 @@ OAuth.prototype.generateAuthorizationString = function(method, uri, parameters) 
     return OAuth.toAuthorizationHeaderString(oauthHeader);
 };
 
+OAuth.prototype.debugGenerateBaseString = function(method, uri, parameters) {
+    var oauthHeader = OAuth.buildAuthorizationHeader(this);
+    return OAuth.generateSignatureBaseString(method, uri, oauthHeader, parameters);
+};
+
 /* -------------------------------- */
 OAuth.createClient = function(info) {
     return http.createClient(info.port || 80, info.hostname, false);

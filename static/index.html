@@ -82,7 +82,19 @@
                         path = "/"+path;
                         $('#path').val(path);
                     }
-                    path += $('#type').val();
+                    var p = path.indexOf("?");
+                    var query = "";
+                    if(p!=-1){
+                        query = path.substring(p+1);
+                        path = path.substring(0,p);
+                    }
+                    if(path.indexOf(".")==-1){
+                    	path += $('#type').val();
+                    }
+                    if(query != ""){
+                        path += "?" + query;
+                    }
+                    path = encodeURI(path);
                     $.ajax('/commit',{
                     	type: 'POST',
                     	contentType: 'application/json',
@@ -90,7 +102,7 @@
                             path: path,
                             method: $('#method').val(),
                             oauth: $('#oauth').is(':checked'),
-                            body: $('#content').val(),
+                            body: encodeURI($('#content').val()),
                         }),
                         dataType: 'json',
                         success: function(data){

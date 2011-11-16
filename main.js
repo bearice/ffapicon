@@ -97,11 +97,11 @@ function verify(req,resp){
         oa.acquireAccessToken(function(oa){
         	if(!oa.statusCode){
                 var header = oa.generateAuthorizationString(
-                    "GET","http://api.fanfou.com/account/verify_credentials.json",{}
+                    "GET","http://"+config.server+"/account/verify_credentials.json",{}
                 );
                 
                 var options = {
-                    host: 'api.fanfou.com',
+                    host: config.server,
                     port: 80,
                     path: '/account/verify_credentials.json',
                     method: 'GET',
@@ -160,7 +160,7 @@ function commit(req,resp){
             return;
         }
         //console.info(cReq);
-        cReq.host = "api.fanfou.com";
+        cReq.host = config.server;
         cReq.port = 80;
         cReq.headers = cReq.headers ? cReq.headers : new Object();
         if(cReq.oauth){
@@ -176,6 +176,8 @@ function commit(req,resp){
             	for(k in postparam)
                     param[k] = postparam[k];
             }
+            var baseString = oa.debugGenerateBaseString(cReq.method,_url,param);
+            cReq.headers['X-Debug-OAuth-BaseString'] = baseString;
             var header = oa.generateAuthorizationString(cReq.method,_url,param);
             cReq.headers['Authorization']=header;
         }
