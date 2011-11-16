@@ -70,6 +70,7 @@ function check_session(req,resp){
         obj.name  = null;
     }
     resp.setHeader("Content-Type","application/json");
+    resp.setHeader("Cache-Control","no-cache");
     resp.end(JSON.stringify(obj));
 }
 
@@ -158,6 +159,7 @@ function commit(req,resp){
             end({error:'Failed to parse JSON'});
             return;
         }
+        //console.info(cReq);
         cReq.host = "api.fanfou.com";
         cReq.port = 80;
         cReq.headers = cReq.headers ? cReq.headers : new Object();
