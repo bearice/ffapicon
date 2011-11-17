@@ -5,63 +5,16 @@ var qs = require('querystring');
 var url = require('url');
 var http = require('http');
 var path = require('path');
-var crypto = require('crypto');
 
 var Cookies = require('./cookies');
+var Session = require('./session');
 var OAuth = require('./oauth');
 var mime = require('./mime');
 var config = require('./config');
 
-var sessions = {};
-var session_seq = Math.floor(Math.random()*1000000);
-
-function resetSessionTimeout(session){
-    if(session.timeoutId){
-    	clearTimeout(session.timeoutId);
-    }
-    session.timeoutId = setTimeout(function(){
-        sessions[session.id] = null;
-    },session.timeout);
-}
-
-function getSession(cookies){
-    var sid = cookies.get("session_id");
-    if(sid){
-        var session = sessions[sid];
-        if(session){
-        	resetSessionTimeout(session);
-            return session.value;
-        }
-    }
-    return null;
-}
-
-function setSession(cookies,val){
-    var sid = cookies.get("session_id");
-    if(sid){
-        var session = sessions[sid];
-        if(session){
-        	resetSessionTimeout(session);
-            session.value = val;
-            return;
-        }
-    }
-    var hmac = crypto.createHmac("sha1", "lalslslsls");
-    hmac.update(String(session_seq++));
-    sid = hmac.digest('hex');
-    cookies.set("session_id",sid);
-    var session = {
-        timeout : 3600000,
-        value : val,
-        id : sid,
-    };
-    sessions[sid] = session;
-    resetSessionTimeout(session);
-}
-
 function check_session(req,resp){
 	var obj = {};
-    var oa = getSession(req.cookies);
+    var oa = req.session.get("OAuth");
     if(oa && oa.user_detail){
         obj.login = true;
         obj.name  = oa.user_detail.name
@@ -76,7 +29,7 @@ function check_session(req,resp){
 
 function login(req,resp){
 	var oa = new OAuth(config.oauth);
-    setSession(req.cookies,oa);
+    req.session.set("OAuth",oa);
     oa.acquireRequestToken(null, function(oa){
     	if(!oa.statusCode){
             resp.end("<html><body><a href=\'"+
@@ -90,9 +43,9 @@ function login(req,resp){
 }
 
 function verify(req,resp){
-    var oa = getSession(req.cookies);
+    var oa = req.session.get("OAuth");
     var token = req.info.query.oauth_verifier;
-    if(oa && token){
+    if(oa){
         oa.setOAuthVerifier(token);
         oa.acquireAccessToken(function(oa){
         	if(!oa.statusCode){
@@ -163,7 +116,7 @@ function commit(req,resp){
         cReq.port = 80;
         cReq.headers = cReq.headers ? cReq.headers : new Object();
         if(cReq.oauth){
-            var oa = getSession(req.cookies);
+            var oa = req.session.get("OAuth");
             if(!oa){
                 end({error:'Not Authorized'});
                 return;
@@ -221,6 +174,7 @@ function commit(req,resp){
         }).end(cReq.body);
     });
 }
+
 function static(req,resp){
     var p = path.normalize(req.info.pathname);
     if(p=="/")p="/index.html";
@@ -272,19 +226,24 @@ function static(req,resp){
     s.pipe(resp);
 }
 
+var dispatch = {
+    '/commit' : commit,
+    '/login'  : login,
+    '/verify' : verify,
+    '/check_session' : check_session,
+};
+
 http.createServer(function (request, response) {
 	console.info("%s %s %s",request.connection.remoteAddress,request.method,request.url);
-    request.cookies = new Cookies(request,response,"balabala");
+    request.cookies = new Cookies(request,response,config.cookies_key);
+    request.session = new Session(request.cookies,config.session.timeout,config.session.key);
+
     request.info = url.parse(request.url,true);
     response.setHeader("Server","KumaChan4J/1.0");
-    if(request.info.pathname=='/commit'){
-        commit(request,response);
-    }else if(request.info.pathname=='/login'){
-        login(request,response);
-    }else if(request.info.pathname=='/verify'){
-        verify(request,response);
-    }else if(request.info.pathname=='/check_session'){
-        check_session(request,response);
+    
+    var handler = dispatch[request.info.pathname];
+    if(handler){
+        handler(request,response);
     }else{
         static(request,response);
     }
