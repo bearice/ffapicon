@@ -214,6 +214,7 @@ OAuth.generateSignatureBaseString = function(method, uri, headers, bodys) {
     for(var idx in bodys) {
         params.push([enc(idx), enc(bodys[idx])].join('='));
     }
+
     return [method.toUpperCase(), enc(uri.replace(/\?.+$/, '')), enc(params.sort().join('&'))].join('&');
 };
 

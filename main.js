@@ -91,7 +91,7 @@ function login(req,resp){
 
 function verify(req,resp){
     var oa = getSession(req.cookies);
-    var token = req.info.query.oauth_token;
+    var token = req.info.query.oauth_verifier;
     if(oa && token){
         oa.setOAuthVerifier(token);
         oa.acquireAccessToken(function(oa){
@@ -159,7 +159,6 @@ function commit(req,resp){
             end({error:'Failed to parse JSON'});
             return;
         }
-        //console.info(cReq);
         cReq.host = config.server;
         cReq.port = 80;
         cReq.headers = cReq.headers ? cReq.headers : new Object();
