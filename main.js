@@ -15,6 +15,7 @@ var config = require('./config');
 function check_session(req,resp){
 	var obj = {};
     var oa = req.session.get("OAuth");
+//    console.info(oa);
     if(oa && oa.user_detail){
         obj.login = true;
         obj.name  = oa.user_detail.name
@@ -40,6 +41,12 @@ function login(req,resp){
             resp.end(String(oa));
         }
     });
+}
+
+function logout(req,resp){
+    req.session.clear();
+    resp.writeHead(302, { "Location": "/" });
+    resp.end();
 }
 
 function verify(req,resp){
@@ -229,6 +236,7 @@ function static(req,resp){
 var dispatch = {
     '/commit' : commit,
     '/login'  : login,
+    '/logout' : logout,
     '/verify' : verify,
     '/check_session' : check_session,
 };

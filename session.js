@@ -17,6 +17,17 @@ function resetSessionTimeout(session){
     },session.timeout);
 }
 
+Session.prototype.clear = function(){
+    var sid = this.cookies.get("session_id");
+    if(sid){
+        var session = sessions[sid];
+        if(session){
+        	sessions[sid] = null;
+        	clearTimeout(session.timeoutId);
+        }
+    }
+}
+
 Session.prototype.get = function(key){
     var sid = this.cookies.get("session_id");
     if(sid){
