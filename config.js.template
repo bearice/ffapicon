@@ -8,13 +8,18 @@ var oauth = {
     callbackURI       : 'http://YOUR_HOST:YOUR_PORT/verify',
 };
 
-var httpd = {
-    port : 8080,
-    host : '0.0.0.0',
-};
-
 module.exports = {
     oauth : oauth,
-    httpd : httpd,
     server: "api.fanfou.com",
+    httpd : {
+        port : 8080,
+        host : "0.0.0.0",
+    },
+    cookies:{
+        key: "Ku1GWjPCpvm0ko",
+    },
+    session : {
+        timeout: 3600000,
+        key: "Zat_8CEy4CA4lV",
+    },
 }
