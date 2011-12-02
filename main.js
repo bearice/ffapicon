@@ -6,11 +6,11 @@ var url = require('url');
 var http = require('http');
 var path = require('path');
 
-var Cookies = require('./cookies');
-var Session = require('./session');
-var OAuth = require('./oauth');
-var mime = require('./mime');
-var config = require('./config');
+var Cookies = require('./libs/kumachan4js/cookies');
+var Session = require('./libs/kumachan4js/session');
+var mime    = require('./libs/kumachan4js/mime');
+var OAuth   = require('./libs/oauthjs/oauth');
+var config  = require('./config');
 
 function check_session(req,resp){
 	var obj = {};
