@@ -133,19 +133,41 @@
                                 }
                                 if(data.response.headers['content-type']){
                                 	if(/application\/json/.test(data.response.headers['content-type'])){
+                                		var json;
+                                		var error;
+                                		try{
+                                			json = JSON.parse(data.response.body);
+                                        }catch(e){
+                                            error = e;
+                                        }
                                 		res += "</PRE><button id='show_origin'>Show Origin</button><PRE id='origin'>"
                                 		res += htmlencode(data.response.body);
                                 		res += "</PRE>";
                                 		res += "<div id='formated'>";
-                                        res += formatJSON(JSON.parse(data.response.body));
+                                        if(json){
+                                        	res += formatJSON(json);
+                                        }else{
+                                            res += "Error while parsing JSON: "+error;
+                                        }
                                         res += "</div>";
                                     }else if(/application\/xml/.test(data.response.headers['content-type'])){
-                                		res += "</PRE><button id='show_origin'>Show Origin</button><PRE id='origin'>"
+                                    	var xml;
+                                		var error;
+                                		try{
+                                			xml = $.parseXML(data.response.body).documentElement;
+                                        }catch(e){
+                                            error = e;
+                                        }
+                                        res += "</PRE><button id='show_origin'>Show Origin</button><PRE id='origin'>"
                                 		res += htmlencode(data.response.body);
                                 		res += "</PRE>";
                                         res += "<div id='formated'>";
-                                        res += "<span class='tag'>"+htmlencode('<?xml version="1.0" encoding="UTF-8"?>')+"</span>";
-                                        res += formatXML($.parseXML(data.response.body).documentElement);
+                                        if(xml){
+                                        	res += "<span class='tag'>"+htmlencode('<?xml version="1.0" encoding="UTF-8"?>')+"</span>";
+                                            res += formatXML(xml);
+                                        }else{
+                                            res += "Error while parsing XML: "+error;
+                                        }
                                         res += "</div>";
                                     }
                                 }else{
