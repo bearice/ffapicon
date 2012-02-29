@@ -2,3 +2,5 @@ config.js
 *.swp
 *~
 .*
+p.js
+static/p.html

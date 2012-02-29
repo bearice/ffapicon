@@ -181,13 +181,13 @@ function commit(req,resp){
     });
 }
 
-var dispatch = {
-    '/commit' : commit,
-    '/login'  : login,
-    '/logout' : logout,
-    '/verify' : verify,
-    '/check_session' : check_session,
-};
+var dispatch = [
+    '/commit' , commit,
+    '/login'  , login,
+    '/logout' , logout,
+    '/verify' , verify,
+    '/check_session' , check_session,
+];
 
 var server = KumaServer(dispatch,config.cookies_key,config.session);
 server.listen(config.httpd.port,config.httpd.host);
