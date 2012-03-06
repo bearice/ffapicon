@@ -260,7 +260,7 @@
                                     ret += formatJSON(v);
                                     ret += ",</div>";        
                                 }
-                                ret = ret.substr(0,ret.length-7) + "</div></div>";
+                                ret += "</div>";
                             }
                             ret += "<span class='json bracket'>}</span>";
                             return ret;
