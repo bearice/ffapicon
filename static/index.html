@@ -219,6 +219,12 @@
             }
 
             function formatJSON(obj){
+                if(obj===null) {
+                    return "<span class='json number'>null</span>";
+                }
+                if(obj===undefined){
+                    return "<span class='json number'>undefined</span>";
+                }
                switch(typeof(obj)){
                     case 'string':
                         return "\"<span class='json string'>"+htmlencode(obj.replace(/"/gm,"\\\""))+"</span>\"";
@@ -254,7 +260,7 @@
                                     ret += formatJSON(v);
                                     ret += ",</div>";        
                                 }
-                                ret = ret.substr(0,ret.length-7) + "</div></div>";
+                                ret += "</div>";
                             }
                             ret += "<span class='json bracket'>}</span>";
                             return ret;
